@@ -56,6 +56,8 @@ namespace nng.Native
         public const string NNG_OPT_TLS_CA_FILE = "tls-ca-file";
         public const string NNG_OPT_TLS_SERVER_NAME = "tls-server-name";
         public const string NNG_OPT_TLS_VERIFIED = "tls-verified";
+        public const string NNG_OPT_TLS_PEER_CN = "tls-peer-cn";
+        public const string NNG_OPT_TLS_PEER_ALT_NAMES = "tls-peer-alt-names";
         public const string NNG_OPT_TCP_NODELAY = "tcp-nodelay";
         public const string NNG_OPT_TCP_KEEPALIVE = "tcp-keepalive";
         public const string NNG_OPT_TCP_BOUND_PORT = "tcp-bound-port";
@@ -308,8 +310,6 @@ namespace nng.Native
 
     public enum nng_tls_version
     {
-        NNG_TLS_1_0 = 0x301,
-        NNG_TLS_1_1 = 0x302,
         NNG_TLS_1_2 = 0x303,
         NNG_TLS_1_3 = 0x304
     };

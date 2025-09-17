@@ -80,5 +80,15 @@ namespace nng
         }
 
         CancellationTokenTaskSource<NngResult<T>> tcs;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose context
+                (Ctx as NngCtx)?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

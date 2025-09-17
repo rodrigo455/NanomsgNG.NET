@@ -49,7 +49,7 @@ namespace nng.Tests
             });
         }
 
-        [Theory(Skip = "Broken")]
+        [Theory]
         [ClassData(typeof(TransportsNoWsClassData))]
         public async Task Advanced(string url)
         {

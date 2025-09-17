@@ -8,17 +8,18 @@
 ARG SRC=/usr/src
 
 # Git NNG source
-FROM debian:buster AS nng
+FROM ubuntu:focal AS nng
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
     ca-certificates \
     curl \
     git
 
 ARG SRC
-ARG NNG_VERSION=1.8.0
+ARG NNG_VERSION=1.11
 ARG NNG_BRANCH=v${NNG_VERSION}
-ARG MBEDTLS_VERSION=3.6.0
+ARG MBEDTLS_VERSION=3.6.4
 ARG MBEDTLS_BRANCH=v${MBEDTLS_VERSION}
 WORKDIR ${SRC}
 
@@ -33,9 +34,10 @@ RUN git clone https://github.com/nanomsg/nng.git &&\
 
 ################################################################################
 # Build x64 Linux
-FROM debian:buster AS linux-x64
+FROM ubuntu:focal AS linux-x64
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
         build-essential \
         cmake \
         perl \
@@ -53,7 +55,7 @@ RUN mkdir -p mbedtls/build && cd mbedtls/build \
         -DUSE_STATIC_MBEDTLS_LIBRARY=OFF \
         -DUSE_SHARED_MBEDTLS_LIBRARY=ON \
         -DENABLE_TESTING=OFF -DENABLE_PROGRAMS=OFF \
-        -DCMAKE_INSTALL_PREFIX=${SRC}/mbedtls/install .. \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && mkdir -p install \
     && make -j2 \
     && make install
@@ -64,21 +66,25 @@ RUN mkdir -p nng/build && cd nng/build \
     && cmake -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DNNG_ENABLE_TLS=ON \
-        -DCMAKE_PREFIX_PATH=${SRC}/mbedtls/install \
-        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF .. \
+        -DCMAKE_PREFIX_PATH=${SRC}/install-prefix \
+        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && make -j2 \
-    && mkdir -p ${RUNTIME_NATIVE} \
-    && cp libnng.so \
-        ${SRC}/mbedtls/install/lib/libmbedcrypto.so \
-        ${SRC}/mbedtls/install/lib/libmbedx509.so \
-        ${SRC}/mbedtls/install/lib/libmbedtls.so \
+    && make install
+
+RUN mkdir -p ${RUNTIME_NATIVE} \
+    && cp ${SRC}/install-prefix/lib/libnng.so \
+        ${SRC}/install-prefix/lib/libmbedcrypto.so \
+        ${SRC}/install-prefix/lib/libmbedx509.so \
+        ${SRC}/install-prefix/lib/libmbedtls.so \
         ${RUNTIME_NATIVE}
 
 ################################################################################
 # Build ARM32
-FROM multiarch/debian-debootstrap:armhf-buster AS arm32v7
+FROM multiarch/debian-debootstrap:armhf-bullseye AS arm32v7
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
         build-essential \
         cmake \
         perl \
@@ -96,7 +102,7 @@ RUN mkdir -p mbedtls/build && cd mbedtls/build \
         -DUSE_STATIC_MBEDTLS_LIBRARY=OFF \
         -DUSE_SHARED_MBEDTLS_LIBRARY=ON \
         -DENABLE_TESTING=OFF -DENABLE_PROGRAMS=OFF \
-        -DCMAKE_INSTALL_PREFIX=${SRC}/mbedtls/install .. \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && mkdir -p install \
     && make -j2 \
     && make install
@@ -105,23 +111,27 @@ WORKDIR ${SRC}
 COPY --from=nng ${SRC}/nng ${SRC}/nng
 RUN mkdir -p nng/build && cd nng/build \
     && cmake -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON \
-        -DUSE_STATIC_MBEDTLS_LIBRARY=OFF \
-        -DUSE_SHARED_MBEDTLS_LIBRARY=ON \
-        -DCMAKE_PREFIX_PATH=${SRC}/mbedtls/install \
-        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DNNG_ENABLE_TLS=ON \
+        -DCMAKE_PREFIX_PATH=${SRC}/install-prefix \
+        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && make -j2 \
-    && mkdir -p ${RUNTIME_NATIVE} \
-    && cp libnng.so \
-        ${SRC}/mbedtls/install/lib/libmbedcrypto.so \
-        ${SRC}/mbedtls/install/lib/libmbedx509.so \
-        ${SRC}/mbedtls/install/lib/libmbedtls.so \
+    && make install
+
+RUN mkdir -p ${RUNTIME_NATIVE} \
+    && cp ${SRC}/install-prefix/lib/libnng.so \
+        ${SRC}/install-prefix/lib/libmbedcrypto.so \
+        ${SRC}/install-prefix/lib/libmbedx509.so \
+        ${SRC}/install-prefix/lib/libmbedtls.so \
         ${RUNTIME_NATIVE}
 
 ################################################################################
 # Build ARM64
-FROM multiarch/debian-debootstrap:arm64-buster AS arm64v8
+FROM multiarch/ubuntu-core:arm64-focal AS arm64v8
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
         build-essential \
         cmake \
         perl \
@@ -139,7 +149,7 @@ RUN mkdir -p mbedtls/build && cd mbedtls/build \
         -DUSE_STATIC_MBEDTLS_LIBRARY=OFF \
         -DUSE_SHARED_MBEDTLS_LIBRARY=ON \
         -DENABLE_TESTING=OFF -DENABLE_PROGRAMS=OFF \
-        -DCMAKE_INSTALL_PREFIX=${SRC}/mbedtls/install .. \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && mkdir -p install \
     && make -j2 \
     && make install
@@ -150,19 +160,22 @@ RUN mkdir -p nng/build && cd nng/build \
     && cmake -G "Unix Makefiles" -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DNNG_ENABLE_TLS=ON \
-        -DCMAKE_PREFIX_PATH=${SRC}/mbedtls/install \
-        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF .. \
+        -DCMAKE_PREFIX_PATH=${SRC}/install-prefix \
+        -DNNG_ELIDE_DEPRECATED=ON -DNNG_TESTS=OFF -DNNG_TOOLS=OFF \
+        -DCMAKE_INSTALL_PREFIX=${SRC}/install-prefix .. \
     && make -j2 \
-    && mkdir -p ${RUNTIME_NATIVE} \
-    && cp libnng.so \
-        ${SRC}/mbedtls/install/lib/libmbedcrypto.so \
-        ${SRC}/mbedtls/install/lib/libmbedx509.so \
-        ${SRC}/mbedtls/install/lib/libmbedtls.so \
+    && make install
+
+RUN mkdir -p ${RUNTIME_NATIVE} \
+    && cp ${SRC}/install-prefix/lib/libnng.so \
+        ${SRC}/install-prefix/lib/libmbedcrypto.so \
+        ${SRC}/install-prefix/lib/libmbedx509.so \
+        ${SRC}/install-prefix/lib/libmbedtls.so \
         ${RUNTIME_NATIVE}
 
 ################################################################################
 # Copy binaries to host
-FROM debian:buster AS copy
+FROM ubuntu:focal AS copy
 
 ARG SRC
 WORKDIR ${SRC}

@@ -31,7 +31,7 @@ namespace nng
                 }
                 return NngResult<ISurveyorAsyncContext<T>>.Err(ctx.Err());
             }
-            else 
+            else
             {
                 return NngResult<ISurveyorAsyncContext<T>>.Fail(res.Err());
             }
@@ -120,5 +120,15 @@ namespace nng
 
         protected TaskCompletionSource<NngResult<Unit>> sendTcs;
         protected CancellationTokenTaskSource<NngResult<T>> receiveTcs;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose context
+                (Ctx as NngCtx)?.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 }

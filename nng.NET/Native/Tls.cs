@@ -15,6 +15,9 @@ namespace nng.Native.Tls
         public static extern Int32 nng_tls_config_alloc(out nng_tls_config config, nng_tls_mode mode);
 
         [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern Int32 nng_tls_config_hold(nng_tls_config config);
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern Int32 nng_tls_config_free(nng_tls_config config);
 
         [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
@@ -49,6 +52,23 @@ namespace nng.Native.Tls
         }
 
         [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        static extern unsafe Int32 nng_tls_config_key(nng_tls_config config, byte* key, UIntPtr size);
+
+        public static Int32 nng_tls_config_key(nng_tls_config config, byte[] key)
+        {
+            unsafe
+            {
+                fixed (byte* ptr = &key[0])
+                {
+                    return nng_tls_config_key(config, ptr, (UIntPtr)key.Length);
+                }
+            }
+        }
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        static extern Int32 nng_tls_config_pass(nng_tls_config config, string pass);
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern Int32 nng_tls_config_auth_mode(nng_tls_config config, nng_tls_auth_mode mode);
 
         [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
@@ -67,5 +87,31 @@ namespace nng.Native.Tls
         {
             return nng_tls_config_cert_key_file(config, path, IntPtr.Zero);
         }
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        static extern unsafe Int32 nng_tls_config_psk(nng_tls_config config, string identity, byte* data, UIntPtr size);
+
+        public static Int32 nng_tls_config_psk(nng_tls_config config, string identity, byte[] key)
+        {
+            unsafe
+            {
+                fixed (byte* ptr = &key[0])
+                {
+                    return nng_tls_config_psk(config, identity, ptr, (UIntPtr)key.Length);
+                }
+            }
+        }
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern Int32 nng_tls_config_version(nng_tls_config config, nng_tls_version min_ver, nng_tls_version max_ver);
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern string nng_tls_engine_name();
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern string nng_tls_engine_description();
+
+        [DllImport(NngDll, CallingConvention = CallingConvention.Cdecl)]
+        public static extern bool nng_tls_engine_fips_mode();
     }
 }
